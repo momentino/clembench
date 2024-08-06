@@ -55,10 +55,9 @@ def main(args: argparse.Namespace):
     if args.command_name == "ls":
         benchmark.list_games()
     if args.command_name == "run":
-        benchmark.run(args.game,
-                      model_specs=read_model_specs(args.models),
+        benchmark.run(model_specs=read_model_specs(args.models),
+                      game_name=args.game,
                       gen_args=read_gen_args(args),
-                      experiment_name=args.experiment_name,
                       instances_name=args.instances_name,
                       results_dir=args.results_dir)
     if args.command_name == "score":
@@ -90,7 +89,7 @@ if __name__ == "__main__":
     run_parser.add_argument("-e", "--experiment_name", type=str,
                             help="Optional argument to only run a specific experiment")
     run_parser.add_argument("-g", "--game", type=str,
-                            required=True, help="A specific game name (see ls).")
+                            help="(Optional) A specific game name (see ls).")
     run_parser.add_argument("-t", "--temperature", type=float, default=0.0,
                             help="Argument to specify sampling temperature for the models. Default: 0.0.")
     run_parser.add_argument("-l", "--max_tokens", type=int, default=100,
