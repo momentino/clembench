@@ -9,7 +9,7 @@ logger = get_logger(__name__)
 class GymMaster:
     def __init__(self, game_list, student_model):
         self.game_list = game_list
-        self.game_names = ["taboo"] #[g.name for g in self.game_list]
+        self.game_names = [g.name for g in self.game_list]
         self.student_model = student_model
         self.resource_root = f'../gym/resources'
         self.configs = self.get_configs()
