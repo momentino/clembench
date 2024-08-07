@@ -29,7 +29,8 @@ def list_games(ret=False):
     if ret:
         return games_list
 
-def run(model_specs: List[backends.ModelSpec], gen_args: Dict, game_name: str, instances_name: str = None,
+
+def run(model_specs: List[backends.ModelSpec], gen_args: Dict, instances_name: str = None,
         results_dir: str = None):
     try:
         player_models = []
@@ -37,45 +38,18 @@ def run(model_specs: List[backends.ModelSpec], gen_args: Dict, game_name: str, i
             model = backends.get_model_for(model_spec)
             model.set_gen_args(**gen_args)
             player_models.append(model)
-        # todo get game name from model and instance
         gym_master = GymMaster(game_list=list_games(ret=True),student_model=player_models[0]) # todo improve this player_models[0]
         game_name = gym_master.get_game()
         benchmark = load_benchmark(game_name, instances_name=instances_name)
         logger.info("Running benchmark for '%s' (models=%s)", game_name,
                     player_models if player_models is not None else "see experiment configs")
-        #if experiment_name:
-        #    benchmark.filter_experiment.append(experiment_name)
         time_start = datetime.now()
-        benchmark.run(player_models=player_models, results_dir=results_dir)
+        benchmark.run(player_models=player_models, gym_master=gym_master, results_dir=results_dir)
         time_end = datetime.now()
         logger.info(f"Run {benchmark.name} took {str(time_end - time_start)}")
     except Exception as e:
         stdout_logger.exception(e)
         logger.error(e, exc_info=True)
-
-
-"""def run(game_name: str, model_specs: List[backends.ModelSpec], gen_args: Dict,
-        experiment_name: str = None, instances_name: str = None, results_dir: str = None):
-    if experiment_name:
-        logger.info("Only running experiment: %s", experiment_name)
-    try:
-        player_models = []
-        for model_spec in model_specs:
-            model = backends.get_model_for(model_spec)
-            model.set_gen_args(**gen_args)  # todo make this somehow available in generate method?
-            player_models.append(model)
-        benchmark = load_benchmark(game_name, instances_name=instances_name)
-        logger.info("Running benchmark for '%s' (models=%s)", game_name,
-                    player_models if player_models is not None else "see experiment configs")
-        if experiment_name:
-            benchmark.filter_experiment.append(experiment_name)
-        time_start = datetime.now()
-        benchmark.run(player_models=player_models, results_dir=results_dir)
-        time_end = datetime.now()
-        logger.info(f"Run {benchmark.name} took {str(time_end - time_start)}")
-    except Exception as e:
-        stdout_logger.exception(e)
-        logger.error(e, exc_info=True)"""
 
 
 def score(game_name: str, experiment_name: str = None, results_dir: str = None):

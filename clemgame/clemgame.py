@@ -12,6 +12,7 @@ from backends import Model, CustomResponseModel, HumanModel
 import clemgame
 from clemgame import file_utils, transcript_utils
 import clemgame.metrics as ms
+from gym.gym import GymMaster
 
 logger = clemgame.get_logger(__name__)
 stdout_logger = clemgame.get_logger("benchmark.run")
@@ -718,7 +719,7 @@ class GameBenchmark(GameResourceLocator):
                     stdout_logger.error(
                         f"{self.name}: '{error_count}' exceptions occurred: See clembench.log for details.")
 
-    def run(self, player_models: List[Model], results_dir: str = None):
+    def run(self, player_models: List[Model], gym_master: GymMaster, results_dir: str = None):
         """
         Runs game-play on all game instances for a game.
         There must be an instances.json with the following structure:
@@ -748,13 +749,9 @@ class GameBenchmark(GameResourceLocator):
         experiments: List = self.instances["experiments"]
         if not experiments:
             self.logger.warning(f"{self.name}: No experiments for %s", self.name)
-        total_experiments = len(experiments)
+
         for experiment_idx, experiment in enumerate(experiments):
-            experiment_name = experiment['name']
-            if self.filter_experiment and experiment_name not in self.filter_experiment:
-                stdout_logger.info(f"Skip experiment {experiment_idx + 1} of {total_experiments}: {experiment_name}")
-                continue
-            stdout_logger.info(f"Run experiment {experiment_idx + 1} of {total_experiments}: {experiment_name}")
+            experiment_name = experiment["name"]
             # Determine dialogue partners: How often to run the experiment with different partners
             dialogue_partners: List[List[Model]] = []
 
@@ -775,7 +772,10 @@ class GameBenchmark(GameResourceLocator):
                            f" nor 'models' given as run arg")
                 stdout_logger.error(message)
                 raise ValueError(message)
+            else:
+                experiment["dialogue_partners_models"] = dialogue_partners
 
+            experiment["dialogue_pair_descs"] = []
             for dialogue_pair in dialogue_partners:
                 if self.is_single_player():
                     if len(dialogue_pair) > 1:
@@ -798,17 +798,18 @@ class GameBenchmark(GameResourceLocator):
                     model_1 = dialogue_pair[1]
                     model_1 = f"{model_1.get_name()}-t{model_1.get_temperature()}"
                     dialogue_pair_desc = f"{model_0}--{model_1}"
-                episode_counter = 0
+                experiment["dialogue_pair_descs"].append(dialogue_pair_desc)
+                experiment["episode_counter"] = 0
+                experiment["error_count"] = 0
 
-                self.logger.info("Activity: %s Experiment: %s Partners: %s Episode: %d",
-                                 self.name, experiment_name, dialogue_pair_desc, episode_counter)
+                experiment["experiment_record_dir"] = f"{experiment_idx}_{experiment_name}"
+                experiment_record_dir = experiment["experiment_record_dir"]
 
-                experiment_record_dir = f"{experiment_idx}_{experiment_name}"
-                experiment_config = {k: experiment[k] for k in experiment if k != 'game_instances'}
-
+                experiment_config = {k: experiment[k] for k in experiment if k != 'game_instances' and k != 'dialogue_partners_models'}
                 # Add some important infos to track
-                experiment_config["timestamp"] = datetime.now().isoformat()
+                #experiment_config["timestamp"] = datetime.now().isoformat()
                 experiment_config["dialogue_partners"] = dialogue_pair_desc
+                experiment["config"] = experiment_config
 
                 self.store_results_file(experiment_config,
                                         f"experiment_{experiment_name}.json",
@@ -816,39 +817,74 @@ class GameBenchmark(GameResourceLocator):
                                         sub_dir=experiment_record_dir,
                                         root_dir=results_root)
 
-                error_count = 0
-                time_experiment_start = datetime.now()
-                game_instances: List = experiment["game_instances"]
-                for game_instance in tqdm(game_instances, desc="Playing games"):
-                    game_id = game_instance["game_id"]
-                    self.logger.info("Activity: %s Experiment: %s Episode: %d Game: %s",
-                                     self.name, experiment_name, episode_counter, game_id)
-                    episode_dir = experiment_record_dir + f"/episode_{episode_counter}"
-                    self.store_results_file(game_instance,
-                                            f"instance.json",
-                                            dialogue_pair_desc,
-                                            sub_dir=episode_dir,
-                                            root_dir=results_root)
-                    try:
-                        game_master = self.create_game_master(experiment_config, dialogue_pair)
-                        game_master.setup(**game_instance)
-                        game_master.play()
-                        game_master.store_records(results_root, dialogue_pair_desc, episode_dir)
-                    except Exception:  # continue with other episodes if something goes wrong
-                        self.logger.exception(f"{self.name}: Exception for episode {game_id} (but continue)")
-                        error_count += 1
-                    episode_counter += 1
-                if error_count > 0:
-                    stdout_logger.error(
-                        f"{self.name}: '{error_count}' exceptions occurred: See clembench.log for details.")
-                # Add experiment duration and overwrite file
-                time_experiment_end = datetime.now() - time_experiment_start
-                experiment_config["duration"] = str(time_experiment_end)
-                self.store_results_file(experiment_config,
-                                        f"experiment_{experiment_name}.json",
+        available_experiments = experiments.copy()
+        """ We iterate over each instance, but the model can choose for a different experiment at each iteration. Each iteration plays a single instance. """
+        while len(available_experiments) > 0:
+            total_experiments = len(available_experiments)
+            experiment = gym_master.get_experiment(self.name, available_experiments)
+            experiment_name = experiment["name"]
+            experiment_idx = experiments.index(experiment)
+            """if self.filter_experiment and experiment_name not in self.filter_experiment:
+                stdout_logger.info(f"Skip experiment {experiment_idx + 1} of {total_experiments}: {experiment_name}")
+                continue
+            stdout_logger.info(f"Run experiment {experiment_idx + 1} of {total_experiments}: {experiment_name}")"""
+
+            dialogue_partners = experiment["dialogue_partners_models"]
+            for dialogue_pair_idx, dialogue_pair in enumerate(dialogue_partners):
+
+                episode_counter = experiment["episode_counter"]
+
+                dialogue_pair_desc = experiment["dialogue_pair_descs"][dialogue_pair_idx]
+                if episode_counter == 0:
+                    self.logger.info("Activity: %s Experiment: %s Partners: %s Episode: %d",
+                                     self.name, experiment_name, dialogue_pair_desc, episode_counter)
+
+                experiment_record_dir = experiment["experiment_record_dir"]
+                #experiment_config = experiment["config"]
+
+                #time_experiment_start = datetime.now()
+                game_instance = experiment["game_instances"][0]
+                game_id = game_instance["game_id"]
+                stdout_logger.info("Activity: %s Experiment: %s Episode: %d Game: %s",
+                                 self.name, experiment_name, episode_counter, game_id)
+                episode_dir = experiment_record_dir + f"/episode_{episode_counter}"
+                self.store_results_file(game_instance,
+                                        f"instance.json",
                                         dialogue_pair_desc,
-                                        sub_dir=experiment_record_dir,
+                                        sub_dir=episode_dir,
                                         root_dir=results_root)
+                try:
+                    game_master = self.create_game_master(experiment["config"], dialogue_pair)
+                    game_master.setup(**game_instance)
+                    game_master.play()
+                    game_master.store_records(results_root, dialogue_pair_desc, episode_dir)
+                except Exception:  # continue with other episodes if something goes wrong
+                    self.logger.exception(f"{self.name}: Exception for episode {game_id} (but continue)")
+                    experiment["error_count"] += 1
+                experiment["episode_counter"] += 1
+                if len(experiment["game_instances"]) == 1:
+                    stdout_logger.info("All the instances of the Experiment: %s played", experiment_name)
+                    available_experiments.remove(experiment)
+                else:
+                    experiment["game_instances"] = experiment["game_instances"][1:]
+        for experiment_idx, experiment in enumerate(experiments):
+            error_count = experiment["error_count"]
+            experiment_name = experiment["name"]
+            if error_count > 0:
+                stdout_logger.error(
+                    f"{self.name}: '{error_count}' exceptions occurred in the experiment: [{experiment_name}] : See clembench.log for details.")
+           # Add experiment duration and overwrite file
+            #time_experiment_end = datetime.now() - time_experiment_start
+            """experiment_config = experiment["config"]
+            experiment_record_dir = experiment_config["experiment_record_dir"]
+            dialogue_pair_desc= experiment["dialogue_pair_descs"][dialogue_pair_idx]
+            #experiment_config["duration"] = str(time_experiment_end)
+            self.store_results_file(experiment_config,
+                                    f"experiment_{experiment_name}.json",
+                                    dialogue_pair_desc,
+                                    sub_dir=experiment_record_dir,
+                                    root_dir=results_root)"""
+
 
     def is_single_player(self) -> bool:
         """

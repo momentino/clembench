@@ -56,7 +56,6 @@ def main(args: argparse.Namespace):
         benchmark.list_games()
     if args.command_name == "run":
         benchmark.run(model_specs=read_model_specs(args.models),
-                      game_name=args.game,
                       gen_args=read_gen_args(args),
                       instances_name=args.instances_name,
                       results_dir=args.results_dir)

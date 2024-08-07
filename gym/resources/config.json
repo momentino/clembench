@@ -1,3 +1,4 @@
 {
-  "game_request_prompt_file_name": "game_request_prompt.json"
+  "game_selection_prompt_file_name": "game_selection_prompt.json",
+  "experiment_selection_prompt_file_name": "experiment_selection_prompt.json"
 }

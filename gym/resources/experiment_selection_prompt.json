@@ -1,0 +1,6 @@
+[
+    {
+        "role": "user",
+        "content": "\n\nThe game you are playing ([game]) is composed of several possible playable instances. They are grouped by category. Choose one among the following: [available_experiments]. These are proper names, so write the exact name in your answer."
+    }
+]
