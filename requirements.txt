@@ -1,9 +1,9 @@
-clemcore[vllm] @ git+https://github.com/momentino/playpen.git@clemcore-2.0
-lark==1.1.9 # adventuregame
+clemcore @ git+https://github.com/momentino/playpen.git@clemcore-2.0
+lark==1.2.2 # before 1.1.9 # adventuregame
 clingo==5.7.1 # adventuregame
 jinja2 # adventuregame
-spacy==3.7.4 # taboo
-nltk==3.8.1 # codenames taboo
+spacy==3.7.6 # before 3.7.4 # taboo
+nltk>=3.8.1 # codenames taboo
 scikit-learn # privateshared
 matplotlib # mm_mapworld textmapworld
 networkx # mm_mapworld textmapworld
