@@ -52,7 +52,7 @@ class WorkingMemory(DialogueGameMaster):
             self.set_context_for(self.participant, self.stimuli[self.current_round+1])
 
     def _on_after_round(self):
-        if self.current_round == len(self.stimuli):
+        if self.current_round == len(self.stimuli)-1:
             self.all_stimuli_done = True
 
 class WorkingMemoryScorer(GameScorer):
