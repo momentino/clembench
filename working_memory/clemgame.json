@@ -1,0 +1,9 @@
+{
+  "game_name": "working_memory",
+  "description": "WorkingMemory is an interactive task where a model's working memory is assessed by asking a model whether it can recall that a stimuli has been presented n steps back in the conversation.",
+  "main_game": "working_memory",
+  "players": "one",
+  "image": "none",
+  "languages": ["en"],
+  "benchmark": ["playpen_eval 1.0"]
+}

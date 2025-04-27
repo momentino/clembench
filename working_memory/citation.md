@@ -1,0 +1,2 @@
+Implementation of:
+> Gong, Dongyu, Xingchen Wan, and Dingmin Wang. "Working memory capacity of ChatGPT: An empirical study." Proceedings of the AAAI conference on artificial intelligence. Vol. 38. No. 9. 2024.
