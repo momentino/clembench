@@ -70,7 +70,7 @@ class WorkingMemoryScorer(GameScorer):
         turn_scores = []
         invalid_response = False
         guesses = 0
-        n_stimuli = self.game_instance['stimuli_list']
+        n_stimuli = len(self.game_instance['stimuli_list'])
 
         for turn_idx, turn in enumerate(episode_interactions["turns"]):
             turn_score = {"request_count":1}
@@ -107,7 +107,7 @@ class WorkingMemoryScorer(GameScorer):
 
 
 
-class WorkingMemoryMGameBenchmark(GameBenchmark):
+class WorkingMemoryGameBenchmark(GameBenchmark):
     def __init__(self, game_spec: GameSpec):
         super().__init__(game_spec)
 
