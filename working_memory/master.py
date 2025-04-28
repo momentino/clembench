@@ -31,8 +31,13 @@ class WorkingMemory(DialogueGameMaster):
 
         self.all_stimuli_done = False
 
+        if "grid" in self.experiment["name"]:
+            self.grids = self.experiment["grids"]
+
     def _on_before_game(self):
-        self.set_context_for(self.participant, self.stimuli[0])
+        context = self.stimuli[0] if "grid" not in self.experiment["name"] else self.grids[
+            self.stimuli[0]]
+        self.set_context_for(self.participant, context)
 
     def _does_game_proceed(self):
         if self.all_stimuli_done:
@@ -42,14 +47,16 @@ class WorkingMemory(DialogueGameMaster):
 
     def _validate_player_response(self, player: Player, utterance: str) -> bool:
         if utterance == self.targets[self.current_round]:
-            self.log_to_self("guess",self.stimuli[self.current_round])
-        else:
+            stimuli = self.stimuli[self.current_round] if "grid" not in self.experiment["name"] else self.grids[self.stimuli[self.current_round+1]]
+            self.log_to_self("guess",stimuli)
+        elif utterance not in ["m","-"]:
             self.log_to_self("invalid response",utterance)
         return True
 
     def _on_valid_player_response(self, player: Player, parsed_response: str):
         if self.current_round < len(self.stimuli)-1:
-            self.set_context_for(self.participant, self.stimuli[self.current_round+1])
+            context = self.stimuli[self.current_round+1] if "grid" not in self.experiment["name"] else self.grids[self.stimuli[self.current_round+1]]
+            self.set_context_for(self.participant, context)
 
     def _on_after_round(self):
         if self.current_round == len(self.stimuli)-1:
@@ -61,7 +68,7 @@ class WorkingMemoryScorer(GameScorer):
 
     def compute_scores(self, episode_interactions: Dict) -> None:
         turn_scores = []
-        invalid_answers = 0
+        invalid_response = False
         guesses = 0
         n_stimuli = self.game_instance['stimuli_list']
 
@@ -73,9 +80,15 @@ class WorkingMemoryScorer(GameScorer):
                 if action["type"] == "guess":
                     guesses += 1
                     guess = 1
+                if action["type"] == "invalid response":
+                    invalid_response = True
+            if invalid_response:
+                turn_score["parsed_request_count"] = 1
+            else:
+                turn_score["parsed_request_count"] = 0
             self.log_turn_score(turn_idx, 'Accuracy', 1 if guess else 0)
             self.log_turn_score(turn_idx, METRIC_REQUEST_COUNT, turn_score["request_count"])
-            self.log_turn_score(turn_idx, METRIC_REQUEST_COUNT_PARSED, turn_score["request_count"])
+            self.log_turn_score(turn_idx, METRIC_REQUEST_COUNT_PARSED, turn_score["parsed_request_count"])
             turn_scores.append(turn_score)
         parsed_request_count = sum(turn["parsed_request_count"] for turn in turn_scores)
         self.log_episode_score(METRIC_REQUEST_COUNT_PARSED, parsed_request_count)
@@ -95,7 +108,6 @@ class WorkingMemoryScorer(GameScorer):
 
 
 class WorkingMemoryMGameBenchmark(GameBenchmark):
-
     def __init__(self, game_spec: GameSpec):
         super().__init__(game_spec)
 
