@@ -27,7 +27,7 @@ class WorkingMemory(DialogueGameMaster):
         self.initial_prompt = self.experiment["initial_prompt"]
 
         self.participant = Participant(self.player_models[0], self.game_recorder)
-        self.add_player(self.participant, initial_context=self.initial_prompt)
+        self.add_player(self.participant, initial_prompt=self.initial_prompt)
 
         self.all_stimuli_done = False
 
