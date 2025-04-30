@@ -31,11 +31,11 @@ class WorkingMemory(DialogueGameMaster):
 
         self.all_stimuli_done = False
 
-        if "grid" in self.experiment["name"]:
+        if "spatial" in self.experiment["name"]:
             self.grids = self.experiment["grids"]
 
     def _on_before_game(self):
-        context = self.stimuli[0] if "grid" not in self.experiment["name"] else self.grids[
+        context = self.stimuli[0] if "spatial" not in self.experiment["name"] else self.grids[
             self.stimuli[0]]
         self.set_context_for(self.participant, context)
 
@@ -51,6 +51,8 @@ class WorkingMemory(DialogueGameMaster):
             self.log_to_self("guess",stimuli)
         elif utterance not in ["m","-"]:
             self.log_to_self("invalid response",utterance)
+        else:
+            self.log_to_self("wrong response",utterance)
         return True
 
     def _on_valid_player_response(self, player: Player, parsed_response: str):
@@ -83,9 +85,9 @@ class WorkingMemoryScorer(GameScorer):
                 if action["type"] == "invalid response":
                     invalid_response = True
             if invalid_response:
-                turn_score["parsed_request_count"] = 1
-            else:
                 turn_score["parsed_request_count"] = 0
+            else:
+                turn_score["parsed_request_count"] = 1
             self.log_turn_score(turn_idx, 'Accuracy', 1 if guess else 0)
             self.log_turn_score(turn_idx, METRIC_REQUEST_COUNT, turn_score["request_count"])
             self.log_turn_score(turn_idx, METRIC_REQUEST_COUNT_PARSED, turn_score["parsed_request_count"])
