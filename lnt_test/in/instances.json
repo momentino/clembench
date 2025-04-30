@@ -43,8 +43,9 @@
           "sequence_list": [{"sequence": "c4"}, {"sequence": "y6"}, {"sequence": "N3"}, {"sequence": "w3"}, {"sequence": "Z0"}, {"sequence": "u5"}, {"sequence": "E1"}, {"sequence": "K3"}, {"sequence": "c1"}, {"sequence": "z5"}, {"sequence": "L9"}, {"sequence": "u2"}, {"sequence": "p0"}, {"sequence": "g1"}, {"sequence": "u0"}, {"sequence": "A1"}, {"sequence": "X7"}, {"sequence": "L0"}, {"sequence": "g2"}, {"sequence": "c1"}, {"sequence": "a4"}, {"sequence": "Y9"}, {"sequence": "F8"}, {"sequence": "N9"}, {"sequence": "D1"}],
           "starting_rule": "number"
         }
-      ]
+      ],
+      "initial_prompt": "You are participating in a sequence classification exercise.\nFor each trial, you will see a sequence containing one letter followed by one number.\nYour task is to classify the sequence in one of two ways:\nFor letters: respond with 'vowel' or 'consonant'\nFor numbers: respond with 'even' or 'odd'\nYou must choose ONE type of classification and stick with it while it works.\nIf you receive incorrect feedback, you must switch to the other classification task - do not persist with a failed approach.\nRespond only with a single word: 'vowel', 'consonant', 'even', or 'odd'.\nDo not explain your choice or provide both classifications.\n"
+
     }
-  ],
-  "initial_prompt": "You are participating in a sequence classification exercise.\nFor each trial, you will see a sequence containing one letter followed by one number.\nYour task is to classify the sequence in one of two ways:\nFor letters: respond with 'vowel' or 'consonant'\nFor numbers: respond with 'even' or 'odd'\nYou must choose ONE type of classification and stick with it while it works.\nIf you receive incorrect feedback, you must switch to the other classification task - do not persist with a failed approach.\nRespond only with a single word: 'vowel', 'consonant', 'even', or 'odd'.\nDo not explain your choice or provide both classifications.\n"
+  ]
 }
