@@ -5,42 +5,42 @@
       "game_instances": [
         {
           "game_id": 0,
-          "sequences_list": [{"sequence": "U6"}, {"sequence": "w3"}, {"sequence": "R1"}, {"sequence": "z8"}, {"sequence": "M0"}, {"sequence": "v5"}, {"sequence": "a9"}, {"sequence": "o9"}, {"sequence": "Z7"}, {"sequence": "V6"}, {"sequence": "X3"}, {"sequence": "Y0"}, {"sequence": "l3"}, {"sequence": "I5"}, {"sequence": "L7"}, {"sequence": "v7"}, {"sequence": "A8"}, {"sequence": "x5"}, {"sequence": "n7"}, {"sequence": "a5"}, {"sequence": "A7"}, {"sequence": "w5"}, {"sequence": "y8"}, {"sequence": "a8"}, {"sequence": "H6"}],
+          "sequences_list": ["U6","w3","R1","z8","M0","v5","a9","o9","Z7","V6","X3","Y0","l3","I5","L7","v7","A8","x5","n7","a5","A7","w5","y8","a8","H6"],
           "starting_rule": "letter"
         },
         {
           "game_id": 1,
-          "sequences_list": [{"sequence": "l8"}, {"sequence": "X5"}, {"sequence": "w6"}, {"sequence": "z8"}, {"sequence": "H8"}, {"sequence": "o3"}, {"sequence": "w5"}, {"sequence": "Z9"}, {"sequence": "l9"}, {"sequence": "o7"}, {"sequence": "W5"}, {"sequence": "P9"}, {"sequence": "M2"}, {"sequence": "w4"}, {"sequence": "E0"}, {"sequence": "B7"}, {"sequence": "j9"}, {"sequence": "W0"}, {"sequence": "H9"}, {"sequence": "J6"}, {"sequence": "j3"}, {"sequence": "F9"}, {"sequence": "D3"}, {"sequence": "n5"}, {"sequence": "s5"}],
+          "sequences_list": ["l8","X5","w6","z8","H8","o3","w5","Z9","l9","o7","W5","P9","M2","w4","E0","B7","j9","W0","H9","J6","j3","F9","D3","n5","s5"],
           "starting_rule": "letter"
         },
         {
           "game_id": 2,
-          "sequence_list": [{"sequence": "T1"}, {"sequence": "y0"}, {"sequence": "u7"}, {"sequence": "J4"}, {"sequence": "q0"}, {"sequence": "f9"}, {"sequence": "g4"}, {"sequence": "g7"}, {"sequence": "R7"}, {"sequence": "q9"}, {"sequence": "N5"}, {"sequence": "e0"}, {"sequence": "F3"}, {"sequence": "g3"}, {"sequence": "H3"}, {"sequence": "v0"}, {"sequence": "Y1"}, {"sequence": "l1"}, {"sequence": "i1"}, {"sequence": "n0"}, {"sequence": "X8"}, {"sequence": "O2"}, {"sequence": "E0"}, {"sequence": "G5"}, {"sequence": "z1"}],
+          "sequence_list": ["T1","y0","u7","J4","q0","f9","g4","g7","R7","q9","N5","e0","F3","g3","H3","v0","Y1","l1","i1","n0","X8","O2","E0","G5","z1"],
           "starting_rule": "letter"
         },
         {
           "game_id": 3,
-          "sequence_list": [{"sequence": "Q2"}, {"sequence": "g4"}, {"sequence": "f5"}, {"sequence": "A4"}, {"sequence": "q7"}, {"sequence": "I4"}, {"sequence": "M1"}, {"sequence": "C0"}, {"sequence": "G9"}, {"sequence": "w3"}, {"sequence": "R8"}, {"sequence": "O7"}, {"sequence": "L7"}, {"sequence": "C5"}, {"sequence": "f8"}, {"sequence": "a0"}, {"sequence": "C5"}, {"sequence": "s3"}, {"sequence": "U5"}, {"sequence": "c0"}, {"sequence": "J3"}, {"sequence": "J2"}, {"sequence": "D6"}, {"sequence": "n0"}, {"sequence": "P3"}],
+          "sequence_list": ["Q2","g4","f5","A4","q7","I4","M1","C0","G9","w3","R8","O7","L7","C5","f8","a0","C5","s3","U5","c0","J3","J2","D6","n0","P3"],
           "starting_rule": "letter"
         },
         {
           "game_id": 4,
-          "sequence_list": [{"sequence": "S1"}, {"sequence": "G0"}, {"sequence": "v3"}, {"sequence": "G7"}, {"sequence": "S5"}, {"sequence": "O0"}, {"sequence": "V1"}, {"sequence": "H9"}, {"sequence": "o8"}, {"sequence": "f6"}, {"sequence": "w2"}, {"sequence": "O2"}, {"sequence": "R8"}, {"sequence": "j3"}, {"sequence": "c8"}, {"sequence": "Y2"}, {"sequence": "D8"}, {"sequence": "a0"}, {"sequence": "e6"}, {"sequence": "h0"}, {"sequence": "V9"}, {"sequence": "A2"}, {"sequence": "h6"}, {"sequence": "l4"}, {"sequence": "B0"}],
+          "sequence_list": ["S1","G0","v3","G7","S5","O0","V1","H9","o8","f6","w2","O2","R8","j3","c8","Y2","D8","a0","e6","h0","V9","A2","h6","l4","B0"],
           "starting_rule": "letter"
         },
         {
           "game_id": 5,
-          "sequence_list": [{"sequence": "X7"}, {"sequence": "m3"}, {"sequence": "D2"}, {"sequence": "L8"}, {"sequence": "U9"}, {"sequence": "X2"}, {"sequence": "O7"}, {"sequence": "w6"}, {"sequence": "b2"}, {"sequence": "J6"}, {"sequence": "V5"}, {"sequence": "u0"}, {"sequence": "p1"}, {"sequence": "l3"}, {"sequence": "L8"}, {"sequence": "x4"}, {"sequence": "t4"}, {"sequence": "R9"}, {"sequence": "E0"}, {"sequence": "V6"}, {"sequence": "Q4"}, {"sequence": "F1"}, {"sequence": "f4"}, {"sequence": "S6"}, {"sequence": "m5"}],
+          "sequence_list": ["X7","m3","D2","L8","U9","X2","O7","w6","b2","J6","V5","u0","p1","l3","L8","x4","t4","R9","E0","V6","Q4","F1","f4","S6","m5"],
           "starting_rule": "number"
         },
         {
           "game_id": 6,
-          "sequence_list": [{"sequence": "y9"}, {"sequence": "c0"}, {"sequence": "A9"}, {"sequence": "O5"}, {"sequence": "G9"}, {"sequence": "s5"}, {"sequence": "Q9"}, {"sequence": "p5"}, {"sequence": "x8"}, {"sequence": "r4"}, {"sequence": "H3"}, {"sequence": "N4"}, {"sequence": "k2"}, {"sequence": "K4"}, {"sequence": "R6"}, {"sequence": "p2"}, {"sequence": "g5"}, {"sequence": "y6"}, {"sequence": "k1"}, {"sequence": "D4"}, {"sequence": "G0"}, {"sequence": "w5"}, {"sequence": "D3"}, {"sequence": "f5"}, {"sequence": "m8"}],
+          "sequence_list": ["y9","c0","A9","O5","G9","s5","Q9","p5","x8","r4","H3","N4","k2","K4","R6","p2","g5","y6","k1","D4","G0","w5","D3","f5","m8"],
           "starting_rule": "letter"
         },
         {
           "game_id": 7,
-          "sequence_list": [{"sequence": "c4"}, {"sequence": "y6"}, {"sequence": "N3"}, {"sequence": "w3"}, {"sequence": "Z0"}, {"sequence": "u5"}, {"sequence": "E1"}, {"sequence": "K3"}, {"sequence": "c1"}, {"sequence": "z5"}, {"sequence": "L9"}, {"sequence": "u2"}, {"sequence": "p0"}, {"sequence": "g1"}, {"sequence": "u0"}, {"sequence": "A1"}, {"sequence": "X7"}, {"sequence": "L0"}, {"sequence": "g2"}, {"sequence": "c1"}, {"sequence": "a4"}, {"sequence": "Y9"}, {"sequence": "F8"}, {"sequence": "N9"}, {"sequence": "D1"}],
+          "sequence_list": ["c4","y6","N3","w3","Z0","u5","E1","K3","c1","z5","L9","u2","p0","g1","u0","A1","X7","L0","g2","c1","a4","Y9","F8","N9","D1"],
           "starting_rule": "number"
         }
       ],

@@ -62,7 +62,7 @@ class LNTTest(DialogueGameMaster):
         parsed_response = self._extract_ln_response(utterance)
         if parsed_response is None:
             self.log_to_self("invalid response", utterance)
-        current_sequence = self.sequences[self.current_round]
+        current_sequence = str(self.sequences[self.current_round])
         letter, number = current_sequence[0], int(current_sequence[1])
 
         if self.current_task == 'letter':
