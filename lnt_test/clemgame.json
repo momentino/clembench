@@ -1,0 +1,9 @@
+{
+  "game_name": "lnt_test",
+  "description": "The LNT (Letter-Number Test) is a test from psychology literature useful for evalauting the cognitive flexibility of models.",
+  "main_game": "lnt_test",
+  "players": "one",
+  "image": "none",
+  "languages": ["en"],
+  "benchmark": ["playpen_eval 1.0"]
+}
