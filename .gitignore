@@ -16,3 +16,6 @@ game_registry.json
 model_registry.json
 # custom backends
 *_api.py
+
+# escapegame images
+mapworld/escapegame/resources/images
