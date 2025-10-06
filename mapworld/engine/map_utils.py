@@ -2,9 +2,10 @@
 Utils module to handle room type/image assignments to Graphs
 """
 import json
-import numpy as np
 from typing import Tuple, Dict, List
 from collections import deque, defaultdict
+
+import numpy as np
 
 class MapConfigError(Exception):
     """Base class for all map config errors."""
@@ -19,7 +20,6 @@ class NodesExhaustedError(MapConfigError):
                f"\nSet another start/end type, set another ambiguity region "
                f"or reduce ambiguity for the selected graph type.")
         super().__init__(msg)
-
 
 
 def load_json(json_path: str):
@@ -114,4 +114,25 @@ def find_distance(edges: List[Tuple], nodes: List) -> Dict:
 
     return distances
 
+
+def get_next_node(start_pos: Tuple, move: str) -> Tuple:
+    """
+    Get the next node after making move from a given start node
+    Args:
+        start_pos: current node of the agent inside MapWorld
+        move: move as a string item
+
+    Returns:
+        node: node of the move as a string item
+    """
+    if move == "north":
+        return start_pos[0], start_pos[1] - 1
+    elif move == "south":
+        return start_pos[0], start_pos[1] + 1
+    elif move == "east":
+        return start_pos[0] + 1, start_pos[1]
+    elif move == "west":
+        return start_pos[0] - 1, start_pos[1]
+    else:
+        raise ValueError(f"Invalid move! Check the parsed response! Passed value for move - {move}")
 

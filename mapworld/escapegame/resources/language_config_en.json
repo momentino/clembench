@@ -1,11 +1,16 @@
 {
-    "directions_tag": "$DIRECTIONS$",
-    "initial_description_tag": "$INITIAL_DESCRIPTION$",
-    "explorer_response_valid_tags": ["move", "escape", "question"],
-    "move_tag": "move",
-    "escape_tag": "escape",
-    "question_tag": "question",
-    "guide_response_valid_tags": ["description", "answer"],
-    "description_tag": "description",
-    "answer_tag": "answer"
+    "DIRECTIONS_PLH": "$DIRECTIONS$",
+    "DESCRIPTION_PLH": "$INITIAL_DESCRIPTION$",
+    "MOVE": "move",
+    "NORTH": "north",
+    "SOUTH": "south",
+    "EAST": "east",
+    "WEST": "west",
+    "ESCAPE": "escape",
+    "QUESTION": "question",
+    "DESCRIPTION": "description",
+    "ANSWER": "answer",
+    "PLAYER_A": "guide",
+    "PLAYER_B": "seeker",
+    "CUSTOM_DESC": "This is a custom description message from Guide"
 }

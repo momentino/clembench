@@ -1,0 +1,8 @@
+{
+  "CATEGORIES_FILE": "categories.json",
+  "IMAGES_FILE": "images.json",
+  "OUTDOOR_CATS": "outdoors",
+  "TARGET_CATS": "targets",
+  "DISTRACTOR_CATS": "distractors"
+}
+

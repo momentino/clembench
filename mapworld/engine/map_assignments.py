@@ -13,13 +13,17 @@ import mapworld.engine.map_utils as map_utils
 logger = logging.getLogger(__name__)
 # Categories.json/images.json Paths
 RESOURCES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
-CATEGORIES_PATH = os.path.join(RESOURCES_DIR, "categories.json")
-IMAGES_PATH = os.path.join(RESOURCES_DIR, "images.json")
+config_path = os.path.join(RESOURCES_DIR, "map_config.json")
 
-# Assign the category keys from "categories.json" here.
-CATEGORY_OUTDOORS = "outdoors"
-CATEGORY_TARGETS = "targets"
-CATEGORY_DISTRACTORS = "distractors"
+config = map_utils.load_json(config_path)
+
+CATEGORIES_PATH = os.path.join(RESOURCES_DIR, config["CATEGORIES_FILE"])
+IMAGES_PATH = os.path.join(RESOURCES_DIR, config["IMAGES_FILE"])
+
+# Assign the category keys from "/categories.json" here.
+CATEGORY_OUTDOORS = config["OUTDOOR_CATS"]
+CATEGORY_TARGETS = config["TARGET_CATS"]
+CATEGORY_DISTRACTORS = config["DISTRACTOR_CATS"]
 
 
 def _assign_node_degree(nx_graph: nx.Graph, node: Tuple):

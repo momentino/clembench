@@ -1,14 +1,26 @@
 ## Working Grid environment
 
+
+from typing import Dict, Tuple
+import ast
+import os
+import logging
+from datetime import datetime
+import imageio.v2 as imageio
+from pathlib import Path
+
 import gymnasium as gym
 from gymnasium import spaces
 import pygame
 import numpy as np
-from typing import Dict, Tuple
-import ast
-import os
 
-import logging
+
+from mapworld.engine.map_utils import load_json
+
+
+RESOURCES_DIR = Path(__file__).resolve().parent / "resources"
+env_config = load_json(RESOURCES_DIR / "env_config.json")
+robot_image = os.path.join(RESOURCES_DIR, "robot.png")
 
 logger = logging.getLogger(__name__)
 stdout_logger = logging.getLogger("mapworld.environment")
@@ -69,27 +81,16 @@ class MapWorldEnv(gym.Env):
             1: np.array([0, 1]),  # South
             2: np.array([-1, 0]), # West
             3: np.array([0, -1]), # North
-            4: np.array([0, 0]),  # Explore
-            5: np.array([1, 1])   # Escape 
+
+            # Game Specific Actions. Set accordingly in engine/resources/env_config.json
+            4: np.array([0, 0]),  # Action 5 (e.g. - Wait)
+            5: np.array([1, 1])   # Action 6 (e.g. - Escape)
         }
 
-        self._action_to_move = {
-            0: "east",
-            1: "south",
-            2: "west",
-            3: "north",
-            4: "<explore>",
-            5: "<escape>"
-        }
+        _action_to_move = env_config["action_to_move"]
 
-        self._move_to_action = {
-            "east": 0,
-            "south": 1,
-            "west": 2,
-            "north": 3,
-            "<explore>": 4,
-            "<escape>": 5
-        }
+        self._action_to_move = {int(k): v for k, v in _action_to_move.items()}
+        self._move_to_action = {v: k for k, v in self._action_to_move.items()}
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -103,6 +104,7 @@ class MapWorldEnv(gym.Env):
         """
         self.window = None
         self.clock = None
+        self._frames = []
 
 
     def _get_obs(self):
@@ -121,14 +123,14 @@ class MapWorldEnv(gym.Env):
         observation = self._get_obs()
         info = self._get_info()
 
-        if self.render_mode == "human":
-            self._render_frame()
+        self._frames = []
+        self._render_frame()
 
         return observation, info
 
     def step(self, action):
         
-        # Map the action (element of {0,1,2,3,4}) to the direction we walk in
+        # Map the action (element of {0,1,2,3}) to the direction we walk in
         direction = self._action_to_direction[action]
 
         # We use `np.clip` to make sure we don't leave the grid
@@ -145,7 +147,7 @@ class MapWorldEnv(gym.Env):
         # An episode is done if the guide agent has generated the <escape> token
         terminated = 0
         reward = 0
-        if self._action_to_move[action] == "<escape>":
+        if action == 4:
             terminated = 1
             reward = 1
         
@@ -160,6 +162,29 @@ class MapWorldEnv(gym.Env):
     def render(self):
         if self.render_mode == "rgb_array":
             return self._render_frame()
+
+    @staticmethod
+    def _to_xy(node):
+        """
+        Accept (x,y) in many forms:
+        - tuple/list/np.array of ints
+        - string like "(3, 4)" or "3,4"
+        Returns np.ndarray([x, y], dtype=int)
+        """
+        if isinstance(node, (tuple, list, np.ndarray)):
+            a = np.asarray(node, dtype=int).reshape(2, )
+            return a
+        if isinstance(node, str):
+            try:
+                val = ast.literal_eval(node)  # handles "(3, 4)" or "[3,4]"
+            except Exception:
+                parts = node.split(",")  # handles "3,4"
+                if len(parts) == 2:
+                    val = (int(parts[0]), int(parts[1]))
+                else:
+                    raise ValueError(f"Cannot parse node coordinate: {node!r}")
+            return np.asarray(val, dtype=int).reshape(2, )
+        raise TypeError(f"Unsupported node type: {type(node)}")
 
     def _draw_rect(self, canvas, color, pos, pix_square_size, room_ratio, label):
 
@@ -176,32 +201,44 @@ class MapWorldEnv(gym.Env):
 
         text_pos = pos*pix_square_size + pix_square_size/2
         text_pos = [text_pos[0], text_pos[1] - pix_square_size/2 + 10]
-        text_surf = self.font.render(str(label), True, (0, 0, 0))
-        # center it in the cell
-        text_rect = text_surf.get_rect(center=text_pos)
-        canvas.blit(text_surf, text_rect)
-
+        if self.render_mode != "rgb_array":
+            text_surf = self.font.render(str(label), True, (0, 0, 0))
+            # center it in the cell
+            text_rect = text_surf.get_rect(center=text_pos)
+            canvas.blit(text_surf, text_rect)
 
     def _draw_line(self, canvas, color, edge, pix_square_size, room_ratio):
-        start_pos = np.array(edge[0])*pix_square_size + pix_square_size/2
-        end_pos = np.array(edge[1])*pix_square_size + pix_square_size/2
+        a = self._to_xy(edge[0])  # np.array([x,y], int)
+        b = self._to_xy(edge[1])
 
-        if edge[0][0] < edge[1][0]:
-            # Horizontal edges
-            start_pos[0] = start_pos[0] + room_ratio/2
-            end_pos[0] = end_pos[0] - room_ratio/2
-        elif edge[0][0] > edge[1][0]:
-            start_pos[0] = start_pos[0] - room_ratio / 2
-            end_pos[0] = end_pos[0] + room_ratio / 2
-        elif edge[0][1] < edge[1][1]:
-            # Vertical Edges
-            start_pos[1] = start_pos[1] + room_ratio/2
-            end_pos[1] = end_pos[1] - room_ratio/2
+        start_pos = a * pix_square_size + pix_square_size / 2
+        end_pos = b * pix_square_size + pix_square_size / 2
+
+        # offset amount in pixels so lines don't overlap room rectangles
+        offset = (room_ratio / 2.0) * pix_square_size
+
+        if a[0] < b[0]:
+            # Horizontal left-to-right
+            start_pos[0] += offset
+            end_pos[0] -= offset
+        elif a[0] > b[0]:
+            # Horizontal right-to-left
+            start_pos[0] -= offset
+            end_pos[0] += offset
+        elif a[1] < b[1]:
+            # Vertical top-to-bottom
+            start_pos[1] += offset
+            end_pos[1] -= offset
         else:
-            start_pos[1] = start_pos[1] - room_ratio / 2
-            end_pos[1] = end_pos[1] + room_ratio / 2
+            # Vertical bottom-to-top
+            start_pos[1] -= offset
+            end_pos[1] += offset
 
-        pygame.draw.line(canvas, color, start_pos, end_pos)
+        # snap to integers to avoid sub-pixel “double line” artifacts
+        start_pos = (int(round(start_pos[0])), int(round(start_pos[1])))
+        end_pos = (int(round(end_pos[0])), int(round(end_pos[1])))
+
+        pygame.draw.line(canvas, color, start_pos, end_pos, width=1)
 
     def _render_frame(self):
         if self.window is None and self.render_mode == "human":
@@ -215,46 +252,41 @@ class MapWorldEnv(gym.Env):
 
         canvas = pygame.Surface((self.window_size, self.window_size))
         canvas.fill((255, 255, 255))
-        pix_square_size = int(
-            self.window_size / self.size
-        )  # The size of a single grid square in pixels
-        room_ratio = 0.6 # Ratio of a visible room pixel wrt pix_square_size
+        pix_square_size = int(self.window_size / self.size)
+        room_ratio = 0.6
 
         # Draw edges
         for edge in self.map_metadata["unnamed_edges"]:
             self._draw_line(canvas, (0, 0, 0), edge, pix_square_size, room_ratio)
 
-        # Draw Pieces
+        # Draw rooms
         for node in self.map_metadata["unnamed_nodes"]:
-            self._draw_rect(canvas, (255,0,0), np.array(node), pix_square_size,
-                            room_ratio, self.map_metadata["node_to_category"][str(tuple(node))])
+            self._draw_rect(
+                canvas, (255, 0, 0), self._to_xy(node),
+                pix_square_size, room_ratio, self.map_metadata["node_to_category"][node]
+            )
 
-        # Now we draw the agent
-        self.robot_img = pygame.image.load(os.path.join("engine", "resources", "robot.png")).convert_alpha()
-        # scale it to cell size
+        # Robot sprite
+        self.robot_img = pygame.image.load(robot_image).convert_alpha()
         self.robot_img = pygame.transform.smoothscale(
-            self.robot_img, (room_ratio*pix_square_size, room_ratio*pix_square_size)
+            self.robot_img, (int(room_ratio * pix_square_size), int(room_ratio * pix_square_size))
         )
+        canvas.blit(self.robot_img, self._agent_location * pix_square_size + 0.2 * pix_square_size)
 
-        # draw the robot
-        canvas.blit(self.robot_img, self._agent_location*pix_square_size + 0.2*pix_square_size)
-
-        self.window.blit(canvas, (0, 0))
-        pygame.display.flip()
+        # --- capture a frame for GIFs (HxWx3 uint8) ---
+        frame = np.transpose(np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)).copy()
+        self._frames.append(frame)
 
         if self.render_mode == "human":
-            # The following line copies our drawings from `canvas` to the visible window
-            self.window.blit(canvas, canvas.get_rect())
+            self.window.blit(canvas, (0, 0))
             pygame.event.pump()
             pygame.display.update()
-
-            # We need to ensure that human-rendering occurs at the predefined framerate.
-            # The following line will automatically add a delay to keep the framerate stable.
             self.clock.tick(self.metadata["render_fps"])
+            # also return frame so caller can inspect if desired
+            return frame
         else:  # rgb_array
-            return np.transpose(
-                np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
-            )
+            return frame
+
 
     @staticmethod
     def _get_direction(start_pos: Tuple, next_pos: Tuple) -> str:
@@ -318,7 +350,11 @@ class MapWorldEnv(gym.Env):
         current_node = self._agent_location
 
         room_name = self.map_metadata["node_to_category"][str(tuple(current_node))]
-        if room_name.endswith("1") or room_name.endswith("2") or room_name.endswith("3"):
+        last_char = room_name[-1]
+        str_digits = [str(i) for i in range(10)]
+
+        if last_char in str_digits:
+            # Checks if room is ambiguous or not
             room_name = room_name[:-2].strip()
             target_name = self.map_metadata["node_to_category"][str(tuple(self.target_pos))]
             target_name = target_name[:-2].strip()
@@ -335,261 +371,57 @@ class MapWorldEnv(gym.Env):
             pygame.display.quit()
             pygame.quit()
 
+    def record_video(self, out_path: str | None = None, fps: int = 2, loop: int = 0):
+        """
+        Save all buffered frames (captured during render calls) as a GIF.
+
+        Args:
+            out_path: destination .gif path. If None, saves under
+                      mapworld/engine/resources/gifs/<timestamp>.gif
+            fps: frames per second for the GIF
+            loop: 0=infinite loop, or number of loops
+
+        Returns:
+            out_path (str): full path to the saved GIF
+        """
+        if not self._frames:
+            raise RuntimeError("No frames recorded. Call env.render() during your episode first.")
+
+        # default path
+        if out_path is None:
+            gifs_dir = RESOURCES_DIR / "gifs"
+            gifs_dir.mkdir(parents=True, exist_ok=True)
+            stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            out_path = gifs_dir / f"episode_{stamp}.gif"
+        else:
+            out_dir = Path(out_path).parent
+            out_dir.mkdir(parents=True, exist_ok=True)
+
+        duration = 2.0 / max(1, fps)  # seconds per frame
+        imageio.mimsave(
+            str(out_path),
+            self._frames,
+            format="GIF",
+            duration=duration,
+            loop=loop,
+        )
+        return str(out_path)
+
 
 if __name__ == '__main__':
-    # n, m = 4, 4
-    # rooms = 8
-    # # np.random.seed(44)
-    # ademap = ADEMap(m, n, rooms)
-    # graph_a = ademap.create_cycle_graph()
-    # graph_a = ademap.assign_types(graph_a, ambiguity=[1], use_outdoor_categories=False)
-    # graph_a = ademap.assign_images(graph_a)
-    # metadata = ademap.metadata(graph_a, "indoor", "indoor")
-    # print(metadata)
-    metadata = {
-                    "game_id": 0,
-                    "graph_id": "44m43p42n32p33w34b35k45h",
-                    "m": 6,
-                    "n": 6,
-                    "named_nodes": [
-                        "Music studio",
-                        "Playroom 1",
-                        "Nursery",
-                        "Playroom 2",
-                        "Workroom",
-                        "Breakroom",
-                        "Kindergarden classroom",
-                        "Hunting lodge indoor"
-                    ],
-                    "unnamed_nodes": [
-                        [
-                            4,
-                            4
-                        ],
-                        [
-                            4,
-                            3
-                        ],
-                        [
-                            4,
-                            2
-                        ],
-                        [
-                            3,
-                            2
-                        ],
-                        [
-                            3,
-                            3
-                        ],
-                        [
-                            3,
-                            4
-                        ],
-                        [
-                            3,
-                            5
-                        ],
-                        [
-                            4,
-                            5
-                        ]
-                    ],
-                    "named_edges": [
-                        [
-                            "Music studio",
-                            "Playroom 1"
-                        ],
-                        [
-                            "Music studio",
-                            "Hunting lodge indoor"
-                        ],
-                        [
-                            "Playroom 1",
-                            "Nursery"
-                        ],
-                        [
-                            "Nursery",
-                            "Playroom 2"
-                        ],
-                        [
-                            "Playroom 2",
-                            "Workroom"
-                        ],
-                        [
-                            "Workroom",
-                            "Breakroom"
-                        ],
-                        [
-                            "Breakroom",
-                            "Kindergarden classroom"
-                        ],
-                        [
-                            "Kindergarden classroom",
-                            "Hunting lodge indoor"
-                        ]
-                    ],
-                    "unnamed_edges": [
-                        [
-                            [
-                                4,
-                                4
-                            ],
-                            [
-                                4,
-                                3
-                            ]
-                        ],
-                        [
-                            [
-                                4,
-                                4
-                            ],
-                            [
-                                4,
-                                5
-                            ]
-                        ],
-                        [
-                            [
-                                4,
-                                3
-                            ],
-                            [
-                                4,
-                                2
-                            ]
-                        ],
-                        [
-                            [
-                                4,
-                                2
-                            ],
-                            [
-                                3,
-                                2
-                            ]
-                        ],
-                        [
-                            [
-                                3,
-                                2
-                            ],
-                            [
-                                3,
-                                3
-                            ]
-                        ],
-                        [
-                            [
-                                3,
-                                3
-                            ],
-                            [
-                                3,
-                                4
-                            ]
-                        ],
-                        [
-                            [
-                                3,
-                                4
-                            ],
-                            [
-                                3,
-                                5
-                            ]
-                        ],
-                        [
-                            [
-                                3,
-                                5
-                            ],
-                            [
-                                4,
-                                5
-                            ]
-                        ]
-                    ],
-                    "category_to_node": {
-                        "Music studio": [
-                            4,
-                            4
-                        ],
-                        "Playroom 1": [
-                            4,
-                            3
-                        ],
-                        "Nursery": [
-                            4,
-                            2
-                        ],
-                        "Playroom 2": [
-                            3,
-                            2
-                        ],
-                        "Workroom": [
-                            3,
-                            3
-                        ],
-                        "Breakroom": [
-                            3,
-                            4
-                        ],
-                        "Kindergarden classroom": [
-                            3,
-                            5
-                        ],
-                        "Hunting lodge indoor": [
-                            4,
-                            5
-                        ]
-                    },
-                    "node_to_image": {
-                        "(4, 4)": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/cultural/music_studio/ADE_train_00012281.jpg",
-                        "(4, 3)": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/home_or_hotel/playroom/ADE_train_00015396.jpg",
-                        "(4, 2)": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/home_or_hotel/nursery/ADE_train_00013898.jpg",
-                        "(3, 2)": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/home_or_hotel/playroom/ADE_train_00015404.jpg",
-                        "(3, 3)": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/work_place/workroom/ADE_train_00020099.jpg",
-                        "(3, 4)": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/shopping_and_dining/breakroom/ADE_train_00004520.jpg",
-                        "(3, 5)": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/cultural/kindergarden_classroom/ADE_train_00010112.jpg",
-                        "(4, 5)": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/home_or_hotel/hunting_lodge__indoor/ADE_train_00009730.jpg"
-                    },
-                    "category_to_image": {
-                        "Music studio": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/cultural/music_studio/ADE_train_00012281.jpg",
-                        "Playroom 1": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/home_or_hotel/playroom/ADE_train_00015396.jpg",
-                        "Nursery": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/home_or_hotel/nursery/ADE_train_00013898.jpg",
-                        "Playroom 2": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/home_or_hotel/playroom/ADE_train_00015404.jpg",
-                        "Workroom": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/work_place/workroom/ADE_train_00020099.jpg",
-                        "Breakroom": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/shopping_and_dining/breakroom/ADE_train_00004520.jpg",
-                        "Kindergarden classroom": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/cultural/kindergarden_classroom/ADE_train_00010112.jpg",
-                        "Hunting lodge indoor": "https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/home_or_hotel/hunting_lodge__indoor/ADE_train_00009730.jpg"
-                    },
-                    "node_to_category": {
-                        "(4, 4)": "Music studio",
-                        "(4, 3)": "Playroom 1",
-                        "(4, 2)": "Nursery",
-                        "(3, 2)": "Playroom 2",
-                        "(3, 3)": "Workroom",
-                        "(3, 4)": "Breakroom",
-                        "(3, 5)": "Kindergarden classroom",
-                        "(4, 5)": "Hunting lodge indoor"
-                    },
-                    "start_node": "(3, 4)",
-                    "target_node": "(4, 3)",
-                    "explorer_prompt": "You are stuck in a mapworld environment containing several rooms. \nYour task is to explore this world and reach an escape room.\nYou are always given an image of the current room you are in. \nI have an image of the Escape Room, this is an initial description of my image - $INIT_DESCRIPTION.\n\nBased on my description and the image given, you now have three options\n\nFirst Option - If you think that the description of my image matches the image you have, i.e.\nyou are in the escape room then respond with one word - ESCAPE.\n\nSecond Option - If you think you need more details from my image - respond in the following format\nQUESTION: Ask details about the image I have to verify if we have the same image or not\n\nThird Option - If you think you are in a different room than what I have, i.e we are seeing different images,\nthen you can make a move in following Directions - $DIRECTIONS. Respond in the following format\nMOVE: direction - Here direction can be one of {north, south, east, west}\n",
-                    "guide_prompt": "I need your help, I am stuck in a mapworld environment. \nYour task is to help me reach an escape room. I do not know what the escape room looks like. \nBut fortunately, you have an image of the escape room with you. I will explore each room here and ask you a few QUESTIONS\nto verify if we have the same image or not, thus verifying if I am in the Escape Room or not.\n\nFirst start by describing the image that you have, Respond in the following format\nDESCRIPTION: your description of the image that you have\n\nThen if I ask a QUESTION, the respond appropriately based on your image in the following format\nANSWER: your Answer\n",
-                    "explorer_reprompt": "\nNow you made a move to this room, and you can either ESCAPE, ask me a QUESTION or MOVE in one of these directions \n$MOVES\n"
-                }
-    env = MapWorldEnv(render_mode="human", size=6, map_metadata=metadata)
 
-
+    metadata = {'graph_id': '10b11r20c21b30a31r40r41m', 'm': 5, 'n': 5, 'named_nodes': ['Bedroom', 'Reception', 'Computer room', 'Bedroom', 'Art studio', 'Reading room', 'Reading room', 'Music studio'], 'unnamed_nodes': ['(1, 0)', '(1, 1)', '(2, 0)', '(2, 1)', '(3, 0)', '(3, 1)', '(4, 0)', '(4, 1)'], 'named_edges': [('Bedroom', 'Computer room'), ('Bedroom', 'Reception'), ('Reception', 'Bedroom'), ('Computer room', 'Art studio'), ('Bedroom', 'Reading room'), ('Art studio', 'Reading room'), ('Reading room', 'Music studio'), ('Reading room', 'Music studio')], 'unnamed_edges': [('(1, 0)', '(2, 0)'), ('(1, 0)', '(1, 1)'), ('(1, 1)', '(2, 1)'), ('(2, 0)', '(3, 0)'), ('(2, 1)', '(3, 1)'), ('(3, 0)', '(4, 0)'), ('(3, 1)', '(4, 1)'), ('(4, 0)', '(4, 1)')], 'node_to_category': {'(1, 0)': 'Bedroom', '(1, 1)': 'Reception', '(2, 0)': 'Computer room', '(2, 1)': 'Bedroom', '(3, 0)': 'Art studio', '(3, 1)': 'Reading room', '(4, 0)': 'Reading room', '(4, 1)': 'Music studio'}, 'node_to_image': {'(1, 0)': 'https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/home_or_hotel/bedroom/ADE_train_00003554.jpg', '(1, 1)': 'https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/work_place/reception/ADE_train_00015719.jpg', '(2, 0)': 'https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/work_place/computer_room/ADE_train_00005955.jpg', '(2, 1)': 'https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/home_or_hotel/bedroom/ADE_train_00003467.jpg', '(3, 0)': 'https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/cultural/art_studio/ADE_train_00001758.jpg', '(3, 1)': 'https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/work_place/reading_room/ADE_train_00015700.jpg', '(4, 0)': 'https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/work_place/reading_room/ADE_train_00015697.jpg', '(4, 1)': 'https://www.ling.uni-potsdam.de/clembench/adk/images/ADE/training/cultural/music_studio/ADE_train_00012288.jpg'}, 'start_node': '(1, 1)', 'target_node': '(4, 0)'}
+    env = MapWorldEnv(render_mode="human", size=5, map_metadata=metadata)
     env.reset()
     env.render()
 
-    moves = [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4]
+    moves = [0, 0, 0, 3, 2, 2, 2, 1]
+    for a in moves:
+        env.render()  # <- buffers a frame each time
+        env.step(a)
 
-    for i in moves:
-        env.render()
-        env.step(i)
+    # Save GIF under mapworld/engine/resources/gifs/
+    gif_path = env.record_video()  # or env.record_video("mapworld/engine/resources/gifs/run.gif", fps=4)
+    print("Saved:", gif_path)
+
     env.close()

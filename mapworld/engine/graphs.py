@@ -1,25 +1,12 @@
-import networkx as nx
-import numpy as np
-import matplotlib.pyplot as plt
 from typing import List, Set
 from collections import deque
 import logging
 
+import networkx as nx
+import numpy as np
+import matplotlib.pyplot as plt
+
 logger = logging.getLogger(__name__)
-
-# NOTE: Terminology - Shift to README
-"""
-M, N, N_ROOMS = A grid of MxN consisting of N_ROOMS.
-Node - Defined as any grid point/cell in a given MxN grid.
-Room - A node where a room has already been formed. 
-Graph - A grid configuration of N_ROOMS of a particular TYPE (layout) with exactly 1 connected component 
-        i.e. every room can be visited from every other room in a given Graph
-        Here TYPE can be one of - {random, random cycle, tree, path, cycle, generalized star, ladder}
-Map - A Graph with assigned room types and images from ADE 20K dataset.
-
-All graph types can be formed by creating their nx counterparts, but the assignment to a Grid like structure
-becomes more complex, so create each graph type here
-"""
 
 class BaseGraph:
 
@@ -50,8 +37,9 @@ class BaseGraph:
     def get_valid_neighbors(current_pos: np.array = np.array([0, 0]), visited: List|Set = None, m: int = 3, n: int = 3):
         """
         Get a list of all 'Valid' neighboring nodes.
-        Valid neighboring room is defined as a node in the grid that has not been set as a room.
-        and is at distance=1 from curr_pos
+        Valid neighboring room is defined as a node in the grid that has not been set as a room,
+        and is at distance=1 from curr_pos.
+        This is used by create_*graph methods to search a candidate for extending a graph
 
         Args:
             current_pos: Position of the current/given room.
@@ -72,37 +60,60 @@ class BaseGraph:
 
         return valid_neighbors
 
+    def _has_star_motif(self, G: nx.Graph) -> bool:
+        """Return True if any node has the 4-way star (up, down, left, right)."""
+        for (x, y) in G.nodes:
+            if G.degree((x, y)) == 4:
+                nbrs = set(G.neighbors((x, y)))
+                expected = {(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)}
+                if expected.issubset(nbrs):
+                    return True
+        return False
+
     def create_tree_graph(self):
         """
         Returns:
-            tree_graph: nx.Graph of Tree type created using basic BFS
-
+            tree_graph: nx.Graph of Tree type created using BFS,
+                        guaranteed to have no 4-way star (center+4 arms).
         """
-        logger.info(f"Creating tree graph with {self.m} x {self.n} rooms")
+        logger.info(f"Creating tree graph with {self.m} x {self.n} rooms (star-free)")
         tree_graph = nx.Graph()
         visited = set()
 
         # Start node
         start_node = (self.graph_rng.integers(0, self.m), self.graph_rng.integers(0, self.n))
-        queue = deque()
-        queue.append(start_node)
+        queue = deque([start_node])
         visited.add(start_node)
         tree_graph.add_node(start_node)
 
         while len(visited) < self.n_rooms and queue:
             current_node = queue.popleft()
-            neighbors = self.get_valid_neighbors(current_node, visited, self.m, self.n)
 
+            # If current_node already has degree 3, do not add more children from it
+            if tree_graph.degree(current_node) >= 3:
+                continue
+
+            neighbors = self.get_valid_neighbors(current_node, visited, self.m, self.n)
             self.graph_rng.shuffle(neighbors)
 
             for next_node in neighbors:
                 if len(visited) >= self.n_rooms:
                     break
 
+                # Adding this edge would make current_node degree +1 and next_node degree +1.
+                # Since next_node is unvisited, its current degree is 0.
+                if tree_graph.degree(current_node) >= 3:
+                    # adding would create degree 4 => potential star center; skip
+                    continue
+
+                # Safe to add
                 visited.add(next_node)
                 tree_graph.add_node(next_node)
                 tree_graph.add_edge(current_node, next_node)
                 queue.append(next_node)
+
+        # Final sanity check (defensive)
+        assert not self._has_star_motif(tree_graph), "Tree graph accidentally contains a 4-way star."
 
         return tree_graph
 

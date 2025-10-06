@@ -1,58 +1,32 @@
-## MapWorld Engine
+# MapWorld Engine
 
-MapWorld is a game engine designed for evaluating multimodal cLLMs (Chat Optimized Large Language Models  | clems) in a room-to-room navigational setting. THis environment is based on [ADE20K dataset](https://ade20k.csail.mit.edu/) (for realistic room images and categories) and [Sempix Mapworld](https://github.com/clp-research/sempix/tree/master/03_Tasks/MapWorld) for creation of acyclic/cyclic graphs and assiging images/categories to each node. We use a custom [Gymnasium](https://gymnasium.farama.org/) based environment to control the navigation of the agent(s)
+**MapWorld** is a lightweight game engine for evaluating **multimodal conversational LLMs (cLLMs)** in a room-to-room navigation setting.  
+It provides a controlled environment where an agent must navigate through a connected map of rooms (derived from graph structures) and reach a target, using multimodal cues.  
 
-### Setup
+The environment is inspired by:  
+- [ADE20K dataset](https://ade20k.csail.mit.edu/) — for realistic room images and categories.  
+- [Sempix MapWorld](https://github.com/clp-research/sempix/tree/master/03_Tasks/MapWorld) — for graph-based map generation.  
+- [Gymnasium](https://gymnasium.farama.org/) — for standardized RL-style environment interaction.  
 
-Clone the repository and install dependencies
+---
 
-```python
-git clone https://github.com/kushal-10/mapworld.git
-cd mapworld
-```
+## Features
+- Create **different graph topologies** (grid, path, cycle, tree, star, ladder, etc.).
+- Assign **room types and categories** from ADE20K.
+- Introduce **ambiguity** (e.g., multiple bedrooms) to test model disambiguation.
+- Render rooms with **realistic images** or as graph layouts.  
+- Built on **Gymnasium API**, enabling easy integration with RL agents and LLM-powered agents.
 
-```python
-python3 -m venv .venv
-source .venv/bin/activate
-source prepare_path.sh
-pip install -r requirements.txt
-```
+---
 
+## Notebook Demo
+For a step-by-step walkthrough of how to:  
+- Generate maps,  
+- Assign categories and images,  
+- Instantiate and interact with the environment,  
+- Render episodes,  
 
-### Quick Start
+see the provided Jupyter notebook:   
+[`howto_setup_mapworld.ipynb`](./howto_setup_mapworld.ipynb)
 
-```python
-from engine.ade_maps import ADEMap
-from engine.environment import MapWorldEnv
-
-n, m = 3, 3 # Grid Size
-rooms = 4 # Number of Rooms
-
-# Create an acyclic graphs
-ademap = ADEMap(m, n, rooms) 
-graph_a = ademap.create_acyclic_graph()
-
-# Assign room categories from resources/categories.json and assign ambiguity
-graph_a = ademap.assign_types(graph_a, ambiguity=[2], use_outdoor_categories=False)
-# Here ambiguity refers to how many similar rooms should be assigned in the map
-# Ambiguity of [2] refers to - We need 2 rooms of the same type
-# Ambiguity of [2,3] refers - We need 2 rooms of Type1 and 3 rooms of Type2
-# Example1 - with 4 rooms and ambiguity of [2], we might get Kitchen, Shower, Bedroom 1 and Bedroom 2
-
-# Assign random images from resources/images.json with a random start and random target position
-graph_a = ademap.assign_images(graph_a)
-metadata = ademap.metadata(graph_a, "random", "random")
-
-# Instantiate environment
-env = MapWorldEnv(render_mode="human", size=5, map_metadata=metadata)
-
-# Run an example episode with random moves
-env.reset()
-env.render()
-print(env._agent_location)
-for i in range(10):
-    env.render()
-    random_action = env.action_space.sample()
-    env.step(random_action)
-env.close()
-```
+---

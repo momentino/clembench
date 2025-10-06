@@ -48,8 +48,8 @@ class BaseMap(BaseGraph):
             ambiguous_rooms: List of rooms assigned as ambiguous
             indoor_rooms: List of rooms assigned as indoor
             outdoor_rooms: List of rooms assigned as outdoor
-            start_type: Type of room that needs to be assigned
-                        - indoor/outdoor/random/ambiguous to agents start position
+            start_type: Type of room that needs to be assigned from
+                        - {indoor/outdoor/random/ambiguous} to agents start position
             end_type: Type of room that needs to be assigned to the target room
             distance: Distance between start and target rooms.
             edges: List of edges in the graph.
@@ -254,10 +254,7 @@ class BaseMap(BaseGraph):
             "named_edges": named_edges,
             "unnamed_edges": unnamed_edges,
             "node_to_category": node_to_category,
-            # TODO: Handle ambiguous categories (e.g. - Reception -> Reception1, Reception2)
-            # "category_to_node": category_to_node,
             "node_to_image": node_to_image,
-            # "category_to_image": category_to_image,
             "start_node": str(start_pos),
             "target_node": str(target_pos),
         }

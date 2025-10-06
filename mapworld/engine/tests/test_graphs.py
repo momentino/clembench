@@ -3,15 +3,15 @@ import os
 import logging
 import networkx as nx
 
-from engine.graphs import BaseGraph
+from mapworld.engine.graphs import BaseGraph
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    filename=os.path.join('engine', 'tests', 'test_graphs.log'),
+                    filename=os.path.join('mapworld', 'engine', 'tests', 'test_graphs.log'),
                     filemode='w')
 
-IMG_PTH = os.path.join('engine', 'tests', 'graph_images')
+IMG_PTH = os.path.join('mapworld', 'engine', 'tests', 'graph_images')
 os.makedirs(IMG_PTH, exist_ok=True)
 
 """

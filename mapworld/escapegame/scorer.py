@@ -276,10 +276,6 @@ class EscapeRoomScorer(GameScorer):
                     aborted = True
                 else:
                     turn_score_dict["parsed_request_count"] += 1
-                    # if action["type"] == "move":
-                    #     total_moves += 1
-                        # if action["content"] == "efficient":
-                            # efficient_moves += 1
                     if action["type"] == "question":
                         total_questions += 1
                     elif action["type"] == "escape" and action["content"] == "success":
