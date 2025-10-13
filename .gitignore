@@ -16,3 +16,9 @@ game_registry.json
 model_registry.json
 # custom backends
 *_api.py
+
+# cached images
+mapworld/escapegame/resources/images
+
+# ipynb checkpoints
+.ipynb_checkpoints
