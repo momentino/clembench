@@ -91,8 +91,7 @@ class CodenamesGame(DialogueGameMaster):
         self.set_context_for(self.cluegiver, self._get_cluegiver_prompt(True))
 
     def _on_before_round(self):
-        # print(self.board.get_current_board())
-        self.log_to_self(Turn_logs.BOARD_STATUS, self.board.get_current_board())
+        #self.log_to_self(Turn_logs.BOARD_STATUS, self.board.get_current_board())
 
         self.cluegiver.retries = 0
         self.guesser.retries = 0
@@ -249,6 +248,7 @@ class CodenamesGame(DialogueGameMaster):
 
     def _on_after_round(self):
         # let mock opponent reveal their cards
+        self.log_to_self(Turn_logs.BOARD_STATUS, self.board.get_current_board())
         if self._does_game_proceed():
             self._opponent_turn()
 

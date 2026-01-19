@@ -228,6 +228,7 @@ class PrivateShared(DialogueGameMaster):
             self.request_counts[self.current_round] += 1  # requests to the answerer per round
     
     def _on_after_game(self):
+        print("ENTROOO")
         self.log_key('probes', self.all_probes)
         self.log_key('realised_slots', self.probe_gt)
         self.log_to_self('end', 'Game finished.')

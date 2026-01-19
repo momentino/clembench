@@ -69,6 +69,7 @@ class AdventureGameMaster(DialogueGameMaster):
                                 "goal_count": self.goals_required_cnt}
         self.log_key("adventure_info", adventure_info)
 
+
     def _on_before_game(self):
         # get initial room description from IF interpreter:
         initial_room_desc = self.if_interpreter.get_full_room_desc()
@@ -245,6 +246,10 @@ class AdventureGameMaster(DialogueGameMaster):
         # record final results once game episode has ended:
         game_result = {"goal_states_achieved": list(self.goals_achieved), "game_successfully_finished": self.finished}
         self.log_to_self("game_result", game_result)
+        adventure_info: dict = {"variant": self.game_instance['variant'], "max_turns": self.game_instance['max_turns'],
+                                "optimal_turns": self.game_instance['optimal_turns'],
+                                "goal_count": self.goals_required_cnt}
+        self.log_key("adventure_info", adventure_info)
 
 
 class AdventureGameScorer(GameScorer):
