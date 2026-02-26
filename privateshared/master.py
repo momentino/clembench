@@ -86,7 +86,6 @@ class PrivateSharedGame:
         self.max_turns: int = len(question_order)
         self.question_order = question_order
         self.messages: List = []
-        self.current_round: int = 0
 
 
 class PrivateShared(DialogueGameMaster):
@@ -114,6 +113,7 @@ class PrivateShared(DialogueGameMaster):
         self.probing = game_instance['probes']
         self.probe_gt = {slot: i for i, slot in enumerate(game_instance['request_order'])}
         self.game = PrivateSharedGame(game_instance['request_order'], game_instance['slots'])
+
         self.n_probe_turns = self.game.max_turns + 1  # one probing before the game starts and one after each request
         request_strings = self.load_json(REQUESTS_PATH.format(self.experiment['name']))
         self.words = Words(self.load_json(WORDS_PATH.format(game_instance['lang'])))  # load language specific words
@@ -132,6 +132,7 @@ class PrivateShared(DialogueGameMaster):
         self.add_player(self.answerer)
         self.add_player(self.questioner, initial_context=dict(role="user", content=self.words.dummy_prompt))
         self._current_player_idx = 1  # start with the questioner
+        self.current_round = 0 # initialize the current round at 0 for the preliminary probing
 
     def _on_before_game(self):
         self.set_context_for(self.questioner, self.words.dummy_prompt)
