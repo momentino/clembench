@@ -1,11 +1,13 @@
-from typing import Dict, Tuple, List, Union
+from typing import Dict, Tuple, List, Union, Optional
 import logging
+from dataclasses import dataclass
 import numpy as np
 
 from clemcore.backends import Model
 from clemcore.clemgame import GameSpec, GameMaster, GameBenchmark, Player
 from clemcore.clemgame.legacy.scorer import GameScorer
 from clemcore.clemgame.legacy.master import DialogueGameMaster
+from clemcore.clemgame.master import GameState, Outcome
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, METRIC_REQUEST_COUNT, \
     METRIC_REQUEST_COUNT_VIOLATED, METRIC_REQUEST_COUNT_PARSED, METRIC_REQUEST_SUCCESS_RATIO, BENCH_SCORE
 from clemcore.utils import string_utils
@@ -20,6 +22,19 @@ EN_STOPWORDS = stopwords.words('english')
 EN_STEMMER = SnowballStemmer("english")
 
 logger = logging.getLogger(__name__)
+
+@dataclass
+class TabooGameState(GameState):
+    target_word: str = None
+    related_words: List[str] = None
+    describer_initial_prompt: str = None
+    guesser_initial_prompt: str = None
+    invalid_response: bool = False
+    clue_error: Optional[Dict] = None
+    guess_word: Optional[str] = None
+
+    def __post_init__(self):
+        super().__init__()
 
 
 class WordGuesser(Player):
@@ -87,20 +102,32 @@ class Taboo(DialogueGameMaster):
         super().__init__(game_spec, experiment, player_models)
         self.max_rounds: int = experiment["max_turns"]
 
-    def _on_setup(self, **game_instance):
-        self.game_instance = game_instance
-
-        self.target_word = game_instance["target_word"]
-        self.related_words = game_instance["related_word"]
-
-        describer_initial_prompt = self.experiment["describer_initial_prompt"]
-        describer_initial_prompt = describer_initial_prompt.replace("$TARGET_WORD$", self.target_word)
-        rel_words = f"- {self.related_words[0]}\n- {self.related_words[1]}\n- {self.related_words[2]}"
+    def _format_initial_prompts(self, describer_initial_prompt, guesser_initial_prompt, target_word, related_words):
+        describer_initial_prompt = describer_initial_prompt.replace("$TARGET_WORD$", target_word)
+        rel_words = f"- {related_words[0]}\n- {related_words[1]}\n- {related_words[2]}"
         describer_initial_prompt = describer_initial_prompt.replace("$REL_WORD$", rel_words)
         describer_initial_prompt = describer_initial_prompt.replace("$N$", str(self.max_rounds))
 
-        guesser_initial_prompt = self.experiment["guesser_initial_prompt"]
         guesser_initial_prompt = guesser_initial_prompt.replace("$N$", str(self.max_rounds))
+
+        return describer_initial_prompt, guesser_initial_prompt
+
+    def _on_setup(self, **game_instance):
+        target_word = game_instance["target_word"]
+        related_words = game_instance["related_word"]
+        describer_initial_prompt, guesser_initial_prompt = self._format_initial_prompts(describer_initial_prompt = self.experiment["describer_initial_prompt"],
+                                                                                        guesser_initial_prompt = self.experiment["guesser_initial_prompt"],
+                                                                                        target_word = target_word,
+                                                                                        related_words = related_words)
+        self.state = TabooGameState(
+            target_word = target_word,
+            related_words = related_words,
+            describer_initial_prompt = describer_initial_prompt,
+            guesser_initial_prompt = guesser_initial_prompt,
+            invalid_response = False,
+            clue_error = None,
+            guess_word = None
+        )
 
         self.describer = WordDescriber(self.player_models[0])
         self.guesser = WordGuesser(self.player_models[1])
@@ -108,22 +135,22 @@ class Taboo(DialogueGameMaster):
         self.add_player(self.describer, initial_context=describer_initial_prompt)
         self.add_player(self.guesser, initial_prompt=guesser_initial_prompt)
 
-        self.invalid_response = False
-        self.clue_error = None
-        self.guess_word = None
-
     def _does_game_proceed(self):
         """Proceed as long as the word hasn't been guessed and the maximum length isn't reached.
         """
         if self.is_terminal():
             if self.is_aborted():
                 self.log_to_self("invalid format", "abort game")
+                self.state.abort()
             if self.is_clue_error():  # stop game if clue is wrong (for now)
-                self.log_to_self("invalid clue", self.clue_error["message"])
+                self.log_to_self("invalid clue", self.state.clue_error["message"])
+                self.state.failed()
             if self.is_turn_limit_reached():
                 self.log_to_self("max rounds reached", str(self.max_rounds))
+                self.state.failed()
             if self.is_success():
                 self.log_to_self("correct guess", "end game")
+                self.state.succeed()
             return False
         return True
 
@@ -137,7 +164,7 @@ class Taboo(DialogueGameMaster):
         return False
 
     def is_aborted(self):
-        return self.invalid_response
+        return self.state.invalid_response
 
     def is_failure(self):
         if self.is_clue_error():
@@ -147,19 +174,19 @@ class Taboo(DialogueGameMaster):
         return False
 
     def is_clue_error(self):
-        return self.clue_error is not None
+        return self.state.clue_error is not None
 
     def is_turn_limit_reached(self):
         return self.current_round >= self.max_rounds
 
     def is_success(self):
-        return self.guess_word == self.target_word
+        return self.state.guess_word == self.state.target_word
 
     def _validate_player_response(self, player: Player, utterance: str) -> bool:
         if player == self.guesser:
             # validate response format
             if not utterance.startswith("GUESS:"):
-                self.invalid_response = True
+                self.state.invalid_response = True
                 return False
             self.log_to_self("valid response", "continue")
             # extract guess word
@@ -167,19 +194,19 @@ class Taboo(DialogueGameMaster):
             guess_word = guess_word.strip()
             guess_word = guess_word.lower()
             guess_word = string_utils.remove_punctuation(guess_word)
-            self.guess_word = guess_word.lower()
-            self.log_to_self("valid guess", self.guess_word)
+            self.state.guess_word = guess_word.lower()
+            self.log_to_self("valid guess", self.state.guess_word)
         if player == self.describer:
             # validate response format
             if not utterance.startswith("CLUE:"):
-                self.invalid_response = True
+                self.state.invalid_response = True
                 return False
             self.log_to_self("valid response", "continue")
             # validate clue
-            clue, errors = check_clue(utterance, self.target_word, self.related_words, return_clue=True)
+            clue, errors = check_clue(utterance, self.state.target_word, self.state.related_words, return_clue=True)
             if errors:
                 error = errors[0]  # highlight single error
-                self.clue_error = error
+                self.state.clue_error = error
                 return False
             self.log_to_self("valid clue", clue)
         return True
