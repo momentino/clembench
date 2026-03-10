@@ -166,8 +166,6 @@ class PrivateShared(DialogueGameMaster):
             self.log_to_self("invalid format", "Abort: invalid format in probing.")
             self.state.abort()
 
-        self.current_round = 1  # preliminary probing round is round 0
-
     def _on_before_round(self):
         self.questioner.set_question_type_for(self.current_round)
         self.set_context_for(self.questioner, self.state.words.dummy_prompt)
@@ -244,7 +242,7 @@ class PrivateShared(DialogueGameMaster):
         self.state.succeed() if successful else self.state.failed()
 
     def _on_after_round(self):
-        if self.current_round + 1 > self.state.max_turns:
+        if self.current_round + 1 > self.state.max_turns and not self.state.outcome == Outcome.ABORTED:
             self._set_final_state()
     
     def _on_after_game(self):
@@ -291,7 +289,7 @@ class PrivateShared(DialogueGameMaster):
         self.log_key(ms.METRIC_REQUEST_COUNT_VIOLATED,
                      self.state.violated_request_counts)
         self.log_key('Filled Slots', self.state.filled_slots)
-        self.log_key('Aborted', int(self.state.outcome == Outcome.ABORTED))
+        self.log_key('Aborted', self.state.outcome == Outcome.ABORTED)
         self.log_key('Played Probe Rounds', self.state.played_probing_rounds)
 
     def _create_probe_dict(self, question_type: str, idx: int) -> Dict:
