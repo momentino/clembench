@@ -241,7 +241,7 @@ class CodenamesGame(DialogueGameMaster):
             assignment = self.state.board.reveal_word(word, OPPONENT)
             self.log_to_self(Turn_logs.OPPONENT_REVEALED, {"word": word, "assignment": assignment})
 
-    def _log_game_end(self):
+    def _on_after_game(self):
         # log everything that is needed for score calculation and game evaluation
         self.log_key(BOARD_END_STATUS, self.state.board.get_current_board())
         self.log_key(NUMBER_OF_TURNS, self.current_round + 1)
