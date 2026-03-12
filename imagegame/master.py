@@ -6,7 +6,7 @@ from clemcore.backends import Model
 from clemcore.clemgame import GameMaster, GameBenchmark, metrics, Player, GameSpec
 from clemcore.clemgame.legacy.master import DialogueGameMaster
 from clemcore.clemgame.legacy.scorer import GameScorer
-from clemcore.clemgame.master import GameState, Outcome
+from clemcore.clemgame.master import GameState
 from evaluator import evaluate, calculate_flipped_pixels
 
 import re
