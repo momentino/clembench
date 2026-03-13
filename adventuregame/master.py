@@ -115,7 +115,7 @@ class AdventureGameMaster(DialogueGameMaster):
                 if "\nNext actions:" not in utterance and "done" not in utterance:
                     self.state.invalid_format = "next_actions_missing"
                     is_valid = False
-        if self.state.invalid_format == False:
+        if self.state.invalid_format:
             self.state.abort()
             self.log_to_self("invalid_format", self.state.invalid_format)
         return is_valid
@@ -236,7 +236,6 @@ class AdventureGameMaster(DialogueGameMaster):
             self.log_to_self("model_done",
                              f"Model produced DONE action at turn {self.current_round}, end episode.")
             if self.state.goals_achieved == self.state.goals_required:
-                self.log_to_self("adventure_finished", list(self.state.goals_achieved))
                 self.state.succeed()
             else:
                 self.state.failed()
