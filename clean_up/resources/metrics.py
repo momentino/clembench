@@ -45,32 +45,32 @@ sub_metrics_registry = [DISTANCE_SCORE, CONSISTENCY_SCORE,
 #     if missing:
 #         raise ValueError(f"{classname}: Missing keys: {', '.join(missing)}")
 
-class MetricPreparer: 
-    def __init__(self, gm, player_1, player_2): 
+class MetricPreparer:
+    def __init__(self, state, player_1, player_2, current_round_fn):
         self.moves: List[Tuple[str, str]] = []
 
-        self.gm = gm
+        self.state = state
         self.player_1 = player_1
         self.player_2 = player_2
 
         # lambda functions are computing values that are not available
         # at the initialization time
-        object_count = len(gm.state.player_states[player_1.name].objects)
+        object_count = len(state.player_states[player_1.name].objects)
         self.ingredients = {
             MOVES: self.moves,
             INIT_STATES: self.get_states(),
             END_STATES: lambda: self.get_states(),
             SHIFTS: lambda: self.compute_shifts(),
-            # MAX_SHIFTS: gm.max_rounds * 2,
+            # MAX_SHIFTS: state.max_rounds * 2,
             MAX_SHIFTS: (object_count - 1) * 2,
             MIN_SHIFTS: object_count - 1,
-            END_DISTANCE_SUM: lambda: gm.state.player_states[player_1.name].distance_sum(gm.state.player_states[player_2.name]),
-            INIT_DISTANCE_SUM: gm.state.initial_distance,
-            EXPECTED_DISTANCE_SUM: gm.state.player_states[player_1.name].expected_distance_sum(),
-            PENALTIES: lambda: gm.state.penalties,
-            MAX_PENALTIES: gm.state.max_penalties,
-            ROUNDS: lambda: gm.current_round,
-            MAX_ROUNDS: gm.state.max_rounds,
+            END_DISTANCE_SUM: lambda: state.player_states[player_1.name].distance_sum(state.player_states[player_2.name]),
+            INIT_DISTANCE_SUM: state.initial_distance,
+            EXPECTED_DISTANCE_SUM: state.player_states[player_1.name].expected_distance_sum(),
+            PENALTIES: lambda: state.penalties,
+            MAX_PENALTIES: state.max_penalties,
+            ROUNDS: current_round_fn,
+            MAX_ROUNDS: state.max_rounds,
             OBJECT_COUNT: object_count,
         }
 
@@ -86,8 +86,8 @@ class MetricPreparer:
         Returns a dictionary with keys 'state_1' and 'state_2', 
         """
         states = {
-                    'state_1': self.gm.state.player_states[self.player_1.name].get_clean_objects(),
-                    'state_2': self.gm.state.player_states[self.player_2.name].get_clean_objects()
+                    'state_1': self.state.player_states[self.player_1.name].get_clean_objects(),
+                    'state_2': self.state.player_states[self.player_2.name].get_clean_objects()
                 }
 
         return states

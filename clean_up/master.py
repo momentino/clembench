@@ -232,12 +232,13 @@ class CleanUpMaster(DialogueGameMaster):
             max_penalties = game_instance['max_penalties'],
             max_rounds = game_instance['max_rounds'],
             message_stats = {v: 0 for v in MESSAGE_STATS.values()},
-            metric_preparer = MetricPreparer(self, self.player_1, self.player_2),
             p1_initial_prompt = game_instance['p1_initial_prompt'],
             p2_initial_prompt = game_instance['p2_initial_prompt'],
             terminate_question = game_instance['terminate_question'],
             terminate_answer = game_instance['terminate_answer'],
         )
+
+        self.state.metric_preparer = MetricPreparer(self.state, self.player_1, self.player_2, lambda: self.current_round)
 
         self.add_player(self.player_1)
         self.add_player(self.player_2)
