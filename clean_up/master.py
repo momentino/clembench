@@ -200,6 +200,9 @@ class CleanUpMaster(DialogueGameMaster):
         self.player_1 = PLAYER_DICT[modality](self.player_models[0])
         self.player_2 = PLAYER_DICT[modality](self.player_models[1])
 
+        self.add_player(self.player_1)
+        self.add_player(self.player_2)
+
         img_prefixes = {
             self.player_1.name : self._prepare_initial_img_prefix(self.player_1, self.experiment["name"], game_instance["game_id"]),
             self.player_2.name : self._prepare_initial_img_prefix(self.player_2, self.experiment["name"], game_instance["game_id"]),
@@ -227,7 +230,7 @@ class CleanUpMaster(DialogueGameMaster):
             img_prefixes = img_prefixes,
             player_states = player_states,
             initial_board = "```\nPlayer 1:\n" + str(player_states[self.player_1.name]) + "\n\nPlayer 2:\n" + str(player_states[self.player_2.name]) + "\n```" if modality in ['text', 'semantic_text'] else None,
-            initial_distance = player_states[self.player_1.name].distance_sum(player_states[self.player_1.name]),
+            initial_distance = player_states[self.player_1.name].distance_sum(player_states[self.player_2.name]),
             penalties = 0,
             max_penalties = game_instance['max_penalties'],
             max_rounds = game_instance['max_rounds'],
@@ -239,9 +242,6 @@ class CleanUpMaster(DialogueGameMaster):
         )
 
         self.state.metric_preparer = MetricPreparer(self.state, self.player_1, self.player_2, lambda: self.current_round)
-
-        self.add_player(self.player_1)
-        self.add_player(self.player_2)
 
     def _prepare_initial_img_prefix(self, player, experiment_name, game_id):
         return f"{experiment_name}_{game_id}_player{player.name}_{player._model.name}"
@@ -446,10 +446,10 @@ class CleanUpMaster(DialogueGameMaster):
             self.state.succeed()
 
     def compute_turn_score(self):
-        return 1 if self.success else 0
+        return 1 if self.state.outcome == Outcome.SUCCESS else 0
 
     def compute_episode_score(self):
-        if self.success:
+        if self.state.outcome == Outcome.SUCCESS:
             return 100 / (self.current_round + 1)  # zero-based
         return 0
     
@@ -475,20 +475,22 @@ class CleanUpMaster(DialogueGameMaster):
                 else:
                     ingredients_string += f"* {key}: {float(val):.2f}\n"
 
-        lose = not self.success
-        if self.success:
-            # If the game is terminated successfully, we check whether 
+        success = self.state.outcome == Outcome.SUCCESS
+        aborted = self.state.outcome == Outcome.ABORTED
+        lose = not success
+        if success:
+            # If the game is terminated successfully, we check whether
             # the end distance is greater than the expected distance
             lose = ingredients[END_DISTANCE_SUM] > ingredients[EXPECTED_DISTANCE_SUM]
 
-        self.log_key(METRIC_ABORTED, int(self.aborted))
+        self.log_key(METRIC_ABORTED, int(aborted))
         self.log_key(METRIC_LOSE, int(lose))
-        self.log_key(METRIC_SUCCESS, int(self.success))
+        self.log_key(METRIC_SUCCESS, int(success))
         if self.state.modality in ['text', 'semantic_text']:
             self.log_to_self("initial_state", "Initial states:\n" + self.state.initial_board)
             self.log_to_self("end_state", "End states:\n```\nPlayer 1:\n" + str(self.state.player_states[self.player_1.name]) + "\n\nPlayer 2:\n" + str(self.state.player_states[self.player_2.name]) + "\n```")
 
-        self.log_to_self('game_finished', f"* success: {self.success}\n* lose: {lose}\n* aborted: {self.aborted}\n-------\n{ingredients_string}") 
+        self.log_to_self('game_finished', f"* success: {success}\n* lose: {lose}\n* aborted: {aborted}\n-------\n{ingredients_string}")
 
         for key, val in self.state.message_stats.items():
             self.log_key(key, val)           
