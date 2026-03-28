@@ -200,6 +200,9 @@ class CleanUpMaster(DialogueGameMaster):
         self.player_1 = PLAYER_DICT[modality](self.player_models[0])
         self.player_2 = PLAYER_DICT[modality](self.player_models[1])
 
+        self.add_player(self.player_1)
+        self.add_player(self.player_2)
+
         img_prefixes = {
             self.player_1.name : self._prepare_initial_img_prefix(self.player_1, self.experiment["name"], game_instance["game_id"]),
             self.player_2.name : self._prepare_initial_img_prefix(self.player_2, self.experiment["name"], game_instance["game_id"]),
@@ -239,9 +242,6 @@ class CleanUpMaster(DialogueGameMaster):
         )
 
         self.state.metric_preparer = MetricPreparer(self.state, self.player_1, self.player_2, lambda: self.current_round)
-
-        self.add_player(self.player_1)
-        self.add_player(self.player_2)
 
     def _prepare_initial_img_prefix(self, player, experiment_name, game_id):
         return f"{experiment_name}_{game_id}_player{player.name}_{player._model.name}"
