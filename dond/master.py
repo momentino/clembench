@@ -348,7 +348,7 @@ class DealOrNoDeal(DialogueGameMaster):
 
     def compute_sum_of_scores(self) -> int:
         # Players only get points in the case of success.
-        if self.state.success:
+        if self.state.outcome == Outcome.SUCCESS:
             assert self.state.player_a_proposal is not None
             assert self.state.player_b_proposal is not None
             return compute_score(
@@ -392,7 +392,7 @@ class DealOrNoDeal(DialogueGameMaster):
             # optimal one is just the maximum achievable.
             return self.compute_maximal_sum_of_scores() - self.compute_sum_of_scores()
         elif self.state.mode == 'semi':
-            if self.state.success:
+            if self.state.outcome == Outcome.SUCCESS:
                 # On success compute based on proposals.
                 assert self.state.player_a_proposal is not None
                 assert self.state.player_b_proposal is not None
