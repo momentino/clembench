@@ -327,11 +327,12 @@ class CleanUpMaster(DialogueGameMaster):
             raise ParseError(reason=self.state.parse_errors["invalid_format"], response=response)
 
     def _on_parse_error(self, error: GameError):
-        self.state.pass_turn = False
         self.state.penalties += 1
         logger.debug(f"Parse error: {error}")
-        message = self._reprompt_message(error.reason)
-        self.set_context_for(self._current_player, message)
+        self.state.pass_turn = self.state.penalties > self.state.max_penalties
+        if not self.state.pass_turn:
+            message = self._reprompt_message(error.reason)
+            self.set_context_for(self._current_player, message)
 
     def _reprompt_message(self, reason) -> str:
         message = Template(self.state.intermittent_prompts['invalid_response']).substitute(reason=reason)
@@ -377,12 +378,13 @@ class CleanUpMaster(DialogueGameMaster):
                 self.set_context_for(self._other_player(), next_player_prompt)
             if not success:
                 logger.debug(f"{player.name} failed to move {obj} to ({x}, {y}): {message}")
-                # Player is reprompted with a penalty, their turn continues.
                 self.state.penalties += 1
+                self.state.pass_turn = self.state.penalties > self.state.max_penalties
                 message = message + "\n" + Template(self.state.intermittent_prompts['penalty_counter']).substitute(penalty=self.state.penalties) + self.state.intermittent_prompts['penalty_reprompt']
                 self.log_to_self('invalid_move', message)
                 self.state.message_stats[MESSAGE_STATS['invalid_move']] += 1
-                self.set_context_for(player, message)
+                if not self.state.pass_turn:
+                    self.set_context_for(player, message)
                 raise RuleViolationError(f"Invalid move: {message}")
         else:
             match = self.state.say_pattern.match(parsed_response)
